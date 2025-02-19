@@ -8,6 +8,7 @@ const getRpcProvider_1 = require("ambire-common/dist/src/services/provider/getRp
 const portfolio_1 = require("ambire-common/dist/src/libs/portfolio");
 const mockedAI_1 = require("./mockedAI");
 const prompts_1 = require("./prompts");
+const __1 = require("..");
 async function getPortfolioForNetwork(address, networkId) {
     const network = networks_1.networks.find((n) => n.id === networkId);
     if (!network)
@@ -51,6 +52,13 @@ const processAddress = async ({ address, getPortfolio, makePrompt, llmProcessor 
     llmProcessor: mockedAI_1.llmMockProcess
 }) => {
     const portfolio = await getPortfolio(address);
+    if (!portfolio.length) {
+        return {
+            address,
+            portfolio,
+            strategies: __1.EMPTY_PORTFOLIO_STRATEGIES
+        };
+    }
     const prompt = await makePrompt({ portfolio });
     const strategies = await llmProcessor({ prompt });
     return {
