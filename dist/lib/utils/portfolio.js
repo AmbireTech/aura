@@ -23,10 +23,10 @@ async function getPortfolioVelcroV3(address, customFetch) {
     const output = [];
     const responses = await Promise.all(networks_1.networks.map((network) => getPortfolioForNetwork(address, network.chainId, customFetch)));
     for (const resp of responses) {
+        const network = networks_1.networks.find((n) => n.chainId === resp.tokens[0].chainId);
         const tokens = resp.tokens
             .filter((t) => t.amount > 0n)
             .map((t) => {
-            const network = networks_1.networks.find((n) => n.chainId === t.chainId);
             const balance = Number(t.amount) / Math.pow(10, t.decimals);
             const priceUSD = (t.priceIn.find((p) => p.baseCurrency === 'usd') || { price: 0 })
                 .price;
@@ -35,6 +35,8 @@ async function getPortfolioVelcroV3(address, customFetch) {
                 balance,
                 balanceUSD: balance * priceUSD,
                 network: network.name,
+                chainId: network.chainId.toString(),
+                platformId: network.platformId,
                 address: t.address
             };
         });
@@ -43,6 +45,9 @@ async function getPortfolioVelcroV3(address, customFetch) {
         }
         output.push({
             network: tokens[0].network,
+            chainId: network.chainId.toString(),
+            platformId: network.platformId,
+            iconUrls: network.iconUrls,
             tokens
         });
     }

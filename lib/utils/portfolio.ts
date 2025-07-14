@@ -44,10 +44,10 @@ export async function getPortfolioVelcroV3(
     )
 
     for (const resp of responses) {
+        const network = networks.find((n) => n.chainId === resp.tokens[0].chainId) as Network
         const tokens = resp.tokens
             .filter((t) => t.amount > 0n)
             .map((t) => {
-                const network = networks.find((n) => n.chainId === t.chainId) as Network
                 const balance = Number(t.amount) / Math.pow(10, t.decimals)
                 const priceUSD = (t.priceIn.find((p) => p.baseCurrency === 'usd') || { price: 0 })
                     .price
@@ -57,6 +57,8 @@ export async function getPortfolioVelcroV3(
                     balance,
                     balanceUSD: balance * priceUSD,
                     network: network.name,
+                    chainId: network.chainId.toString(),
+                    platformId: network.platformId,
                     address: t.address
                 }
             })
@@ -67,6 +69,9 @@ export async function getPortfolioVelcroV3(
 
         output.push({
             network: tokens[0].network,
+            chainId: network.chainId.toString(),
+            platformId: network.platformId,
+            iconUrls: network.iconUrls,
             tokens
         })
     }
