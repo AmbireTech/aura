@@ -56,7 +56,8 @@ export async function getPortfolioVelcroV3(
                     symbol: t.symbol,
                     balance,
                     balanceUSD: balance * priceUSD,
-                    address: t.address
+                    address: t.address,
+                    decimals: t.decimals
                 }
             })
 
