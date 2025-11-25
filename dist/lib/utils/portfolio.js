@@ -33,7 +33,8 @@ async function getPortfolioVelcroV3(address, customFetch) {
                 symbol: t.symbol,
                 balance,
                 balanceUSD: balance * priceUSD,
-                address: t.address
+                address: t.address,
+                decimals: t.decimals
             };
         });
         if (!tokens.length) {

@@ -8,6 +8,7 @@ export type PortfolioToken = {
     balance: number;
     balanceUSD: number;
     symbol: string;
+    decimals: number;
 };
 export type PortfolioNetworkInfo = {
     name: string;
