@@ -1,8 +1,8 @@
 import { EMPTY_PORTFOLIO_STRATEGIES } from '../../lib'
 import {
+    LlmProcessOutput,
     NetworkPortfolioLibResponse,
     PortfolioLibToken,
-    Strategy,
     StrategyRisk
 } from '../../lib/types'
 import {
@@ -19,7 +19,7 @@ const mockedNetworkPortfolioResult: NetworkPortfolioLibResponse = {
         {
             symbol: 'USDC',
             address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-            networkId: 'ethereum',
+            chainId: 1n,
             decimals: 6,
             amount: 50000000n,
             priceIn: [
@@ -31,23 +31,31 @@ const mockedNetworkPortfolioResult: NetworkPortfolioLibResponse = {
         }
     ]
 }
-const mockedStrategies: Strategy[] = [
-    {
-        actions: [
-            {
-                description: 'Example USDC strategy description',
-                tokens: 'USDC, ETH'
-            }
-        ],
-        name: 'Example USDC strategy name',
-        risk: StrategyRisk.LOW
-    }
-]
+const mockedLlmOutput: LlmProcessOutput = {
+    llm: {
+        provider: 'mock',
+        model: 'mock'
+    },
+    response: [
+        {
+            actions: [
+                {
+                    description: 'Example USDC strategy description',
+                    tokens: 'USDC, ETH'
+                }
+            ],
+            name: 'Example USDC strategy name',
+            risk: StrategyRisk.LOW
+        }
+    ],
+    inputTokens: 0,
+    outputTokens: 0
+}
 
 jest.mock('ambire-common/dist/src/consts/networks', () => {
     const actual = jest.requireActual('ambire-common/dist/src/consts/networks')
     return {
-        networks: actual.networks.filter((n: any) => ['ethereum'].includes(n.id))
+        networks: actual.networks.filter((n: any) => ['Ethereum'].includes(n.name))
     }
 })
 
@@ -67,7 +75,7 @@ describe('Portfolio unit tests', () => {
     })
 
     test('should successfully get portfolio for address on ethereum', async () => {
-        const res = await getPortfolioForNetwork(TEST_WALLET, 'ethereum')
+        const res = await getPortfolioForNetwork(TEST_WALLET, 'Ethereum')
 
         expect(res).toHaveProperty('tokens')
         expect(res.tokens).toHaveLength(1)
@@ -80,13 +88,12 @@ describe('Portfolio unit tests', () => {
         expect(res).toHaveLength(1)
         expect(res[0]).toHaveProperty('network')
         expect(res[0]).toHaveProperty('tokens')
-        expect(res[0].network).toEqual('ethereum')
+        expect(res[0].network.name).toEqual('Ethereum')
         expect(res[0].tokens).toHaveLength(1)
 
         const mockedLibToken = mockedNetworkPortfolioResult.tokens[0]
         expect(res[0].tokens[0].symbol).toEqual(mockedLibToken.symbol)
         expect(res[0].tokens[0].address).toEqual(mockedLibToken.address)
-        expect(res[0].tokens[0].network).toEqual(mockedLibToken.networkId)
 
         const expectedBalance =
             Number(mockedLibToken.amount) / Math.pow(10, mockedLibToken.decimals)
@@ -99,7 +106,7 @@ describe('Portfolio unit tests', () => {
             address: TEST_WALLET,
             getPortfolio: getPortfolioVelcroV3,
             makePrompt: simplePrompt,
-            llmProcessor: () => Promise.resolve(mockedStrategies)
+            llmProcessor: () => Promise.resolve(mockedLlmOutput)
         })
 
         expect(res).toHaveProperty('address')
@@ -107,7 +114,8 @@ describe('Portfolio unit tests', () => {
         expect(res).toHaveProperty('strategies')
         expect(res.address).toEqual(TEST_WALLET)
         expect(res.portfolio).toHaveLength(1)
-        expect(res.strategies).toBe(mockedStrategies)
+        expect(res.strategies).toHaveLength(1)
+        expect(res.strategies[0]).toBe(mockedLlmOutput)
     })
 
     test('should process address with empty portfolio and get hardcoded strategy for it', async () => {
@@ -115,7 +123,7 @@ describe('Portfolio unit tests', () => {
             address: TEST_WALLET,
             getPortfolio: () => Promise.resolve([]),
             makePrompt: simplePrompt,
-            llmProcessor: () => Promise.resolve(mockedStrategies)
+            llmProcessor: () => Promise.resolve(mockedLlmOutput)
         })
 
         expect(res).toHaveProperty('address')
@@ -123,6 +131,7 @@ describe('Portfolio unit tests', () => {
         expect(res).toHaveProperty('strategies')
         expect(res.address).toEqual(TEST_WALLET)
         expect(res.portfolio).toHaveLength(0)
-        expect(res.strategies).toBe(EMPTY_PORTFOLIO_STRATEGIES)
+        expect(res.strategies).toHaveLength(1)
+        expect(res.strategies[0].response).toBe(EMPTY_PORTFOLIO_STRATEGIES)
     })
 })

@@ -2,7 +2,7 @@ import { TokenResult } from 'ambire-common/dist/src/libs/portfolio/interfaces'
 
 export type PortfolioLibToken = Pick<
     TokenResult,
-    'symbol' | 'address' | 'networkId' | 'decimals' | 'amount' | 'priceIn'
+    'symbol' | 'address' | 'chainId' | 'decimals' | 'amount' | 'priceIn'
 >
 export type NetworkPortfolioLibResponse = {
     tokens: PortfolioLibToken[]
@@ -13,23 +13,37 @@ export type PortfolioToken = {
     balance: number
     balanceUSD: number
     symbol: string
-    network: string
+    decimals: number
+}
+
+export type PortfolioNetworkInfo = {
+    name: string
+    chainId: string
+    platformId: string
+    explorerUrl: string
+    iconUrls: string[]
 }
 
 export type PortfolioForNetwork = {
-    network: string
+    network: PortfolioNetworkInfo
     tokens: PortfolioToken[]
 }
 
 export enum StrategyRisk {
     LOW = 'low',
-    MEDIUM = 'medium',
-    HIGH = 'high'
+    MODERATE = 'moderate',
+    HIGH = 'high',
+    OPPORTUNISTIC = 'opportunistic'
 }
 
 export type StrategyAction = {
     tokens: string
     description: string
+    platforms?: Array<{ name: string; url: string }>
+    networks?: string[]
+    operations?: string[]
+    apy?: string
+    flags?: string[]
 }
 
 export type Strategy = {
@@ -41,15 +55,29 @@ export type Strategy = {
 export type LlmProcessProps = {
     prompt: string
     model?: string
+    llmOptionsOverride?: { [x: string]: any }
+    timeout?: number
+    timeoutMsg?: string
 }
 
-export type LlmProcessOutput = Strategy[] | null
+export type LlmProcessOutput = {
+    llm: {
+        provider: string
+        model: string
+    }
+    response: Strategy[] | null
+    inputTokens: number
+    outputTokens: number
+    error?: string | null
+}
 
 export type ProcessAddressProps = {
     address: string
     getPortfolio: (address: string) => Promise<PortfolioForNetwork[]>
     makePrompt: (props: PromptProps) => Promise<string>
     llmProcessor: (props: LlmProcessProps) => Promise<LlmProcessOutput>
+    model?: string
+    llmOptionsOverride?: any
 }
 
 export type PromptProps = {
@@ -59,5 +87,5 @@ export type PromptProps = {
 export type AuraResponse_01 = {
     address: string
     portfolio: PortfolioForNetwork[]
-    strategies: LlmProcessOutput
+    strategies: LlmProcessOutput[]
 }

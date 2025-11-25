@@ -1,27 +1,31 @@
+import fetch from 'node-fetch'
+import { networks } from 'ambire-common/dist/src/consts/networks'
+import { Network } from 'ambire-common/dist/src/interfaces/network'
+import { Fetch } from 'ambire-common/dist/src/interfaces/fetch'
+import { getRpcProvider } from 'ambire-common/dist/src/services/provider/getRpcProvider'
+import { Portfolio } from 'ambire-common/dist/src/libs/portfolio'
+import { llmMockProcess } from './llm/mockedAI'
+import { simplePrompt } from './prompts'
+import { EMPTY_PORTFOLIO_STRATEGIES } from './strategies'
 import {
     PortfolioForNetwork,
     ProcessAddressProps,
     AuraResponse_01,
-    NetworkPortfolioLibResponse
+    NetworkPortfolioLibResponse,
+    PortfolioNetworkInfo
 } from '../types'
-
-import { networks } from 'ambire-common/dist/src/consts/networks'
-import { getRpcProvider } from 'ambire-common/dist/src/services/provider/getRpcProvider'
-import { Portfolio } from 'ambire-common/dist/src/libs/portfolio'
-import { llmMockProcess } from './mockedAI'
-import { simplePrompt } from './prompts'
-import { EMPTY_PORTFOLIO_STRATEGIES } from '..'
 
 export async function getPortfolioForNetwork(
     address: string,
-    networkId: string
+    networkId: string | bigint,
+    customFetch?: Fetch
 ): Promise<NetworkPortfolioLibResponse> {
-    const network = networks.find((n: any) => n.id === networkId)
+    const network = networks.find((n: Network) => n.chainId === networkId || n.name === networkId)
     if (!network) throw new Error(`Failed to find ${networkId} in configured networks`)
 
     const provider = getRpcProvider(network.rpcUrls, network.chainId)
     const portfolio = new Portfolio(
-        fetch,
+        customFetch || fetch,
         provider,
         network,
         'https://relayer.ambire.com/velcro-v3'
@@ -30,11 +34,14 @@ export async function getPortfolioForNetwork(
     return portfolio.get(address, { baseCurrency: 'usd' })
 }
 
-export async function getPortfolioVelcroV3(address: string): Promise<PortfolioForNetwork[]> {
+export async function getPortfolioVelcroV3(
+    address: string,
+    customFetch?: Fetch
+): Promise<PortfolioForNetwork[]> {
     const output: PortfolioForNetwork[] = []
 
     const responses = await Promise.all(
-        networks.map((network) => getPortfolioForNetwork(address, network.id))
+        networks.map((network) => getPortfolioForNetwork(address, network.chainId, customFetch))
     )
 
     for (const resp of responses) {
@@ -49,8 +56,8 @@ export async function getPortfolioVelcroV3(address: string): Promise<PortfolioFo
                     symbol: t.symbol,
                     balance,
                     balanceUSD: balance * priceUSD,
-                    network: t.networkId,
-                    address: t.address
+                    address: t.address,
+                    decimals: t.decimals
                 }
             })
 
@@ -58,8 +65,17 @@ export async function getPortfolioVelcroV3(address: string): Promise<PortfolioFo
             continue
         }
 
+        const matchedNetwork = networks.find((n) => n.chainId === resp.tokens[0].chainId) as Network
+        const networkInfo: PortfolioNetworkInfo = {
+            name: matchedNetwork.name,
+            chainId: matchedNetwork.chainId.toString(),
+            platformId: matchedNetwork.platformId,
+            explorerUrl: matchedNetwork.explorerUrl,
+            iconUrls: matchedNetwork.iconUrls || []
+        }
+
         output.push({
-            network: tokens[0].network,
+            network: networkInfo,
             tokens
         })
     }
@@ -68,7 +84,14 @@ export async function getPortfolioVelcroV3(address: string): Promise<PortfolioFo
 }
 
 export const processAddress = async (
-    { address, getPortfolio, makePrompt, llmProcessor }: ProcessAddressProps = {
+    {
+        address,
+        getPortfolio,
+        makePrompt,
+        llmProcessor,
+        model,
+        llmOptionsOverride
+    }: ProcessAddressProps = {
         address: '0x69bfD720Dd188B8BB04C4b4D24442D3c15576D10',
         getPortfolio: getPortfolioVelcroV3,
         makePrompt: simplePrompt,
@@ -81,16 +104,26 @@ export const processAddress = async (
         return {
             address,
             portfolio,
-            strategies: EMPTY_PORTFOLIO_STRATEGIES
+            strategies: [
+                {
+                    llm: {
+                        provider: 'local',
+                        model: 'local'
+                    },
+                    response: EMPTY_PORTFOLIO_STRATEGIES,
+                    inputTokens: 0,
+                    outputTokens: 0
+                }
+            ]
         }
     }
 
     const prompt = await makePrompt({ portfolio })
-    const strategies = await llmProcessor({ prompt })
+    const strategies = await llmProcessor({ prompt, model, llmOptionsOverride })
 
     return {
         address,
         portfolio,
-        strategies
+        strategies: [strategies]
     }
 }

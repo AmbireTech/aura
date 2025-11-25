@@ -1,5 +1,5 @@
 import { Strategy, StrategyRisk } from '../../lib/types'
-import { callGemini } from '../../lib/utils/geminiAI'
+import { callGrok } from '../../lib/utils/llm/grok'
 
 const mockedStrategies: Strategy[] = [
     {
@@ -14,30 +14,35 @@ const mockedStrategies: Strategy[] = [
     }
 ]
 
-jest.mock('@google/generative-ai', () => {
-    const googleGemini = jest.requireActual('@google/generative-ai')
-    return {
-        ...googleGemini,
-        GoogleGenerativeAI: jest.fn().mockImplementation(() => ({
-            getGenerativeModel: jest.fn().mockReturnValue({
-                generateContent: () =>
+jest.mock('openai', () => {
+    return jest.fn().mockImplementation(() => ({
+        chat: {
+            completions: {
+                create: () =>
                     Promise.resolve({
-                        response: { text: () => JSON.stringify(mockedStrategies) }
+                        choices: [
+                            {
+                                message: {
+                                    content: JSON.stringify({ strategies: mockedStrategies })
+                                }
+                            }
+                        ]
                     })
-            })
-        }))
-    }
+            }
+        }
+    }))
 })
 
-describe('Gemini AI unit tests', () => {
-    test('should successfully call Gemini and get strategies', async () => {
-        const res = await callGemini({ prompt: 'text prompt' })
+describe('Grok unit tests', () => {
+    test('should successfully call Grok and get strategies', async () => {
+        const res = await callGrok({ prompt: 'text prompt' })
 
         expect(res).not.toBe(null)
-        expect(res).toHaveLength(1)
+        expect(res).toHaveProperty('response')
+        expect(res.response).toHaveLength(1)
 
         const expectedStrategy = mockedStrategies[0]
-        const strategy = (res as Strategy[])[0]
+        const strategy = (res.response as Strategy[])[0]
         expect(strategy.name).toEqual(expectedStrategy.name)
         expect(strategy.risk).toEqual(expectedStrategy.risk)
         expect(strategy.actions.length).toEqual(expectedStrategy.actions.length)
