@@ -1,5 +1,5 @@
 import fetch from 'node-fetch'
-import { networks } from 'ambire-common/dist/src/consts/networks'
+import { networks as commonNetworks } from 'ambire-common/dist/src/consts/networks'
 import { Network } from 'ambire-common/dist/src/interfaces/network'
 import { Fetch } from 'ambire-common/dist/src/interfaces/fetch'
 import { getRpcProvider } from 'ambire-common/dist/src/services/provider/getRpcProvider'
@@ -17,12 +17,9 @@ import {
 
 export async function getPortfolioForNetwork(
     address: string,
-    networkId: string | bigint,
+    network: Network,
     customFetch?: Fetch
 ): Promise<NetworkPortfolioLibResponse> {
-    const network = networks.find((n: Network) => n.chainId === networkId || n.name === networkId)
-    if (!network) throw new Error(`Failed to find ${networkId} in configured networks`)
-
     const provider = getRpcProvider(network.rpcUrls, network.chainId)
     const portfolio = new Portfolio(
         customFetch || fetch,
@@ -36,12 +33,13 @@ export async function getPortfolioForNetwork(
 
 export async function getPortfolioVelcroV3(
     address: string,
+    networks: Network[] = commonNetworks,
     customFetch?: Fetch
 ): Promise<PortfolioForNetwork[]> {
     const output: PortfolioForNetwork[] = []
 
     const responses = await Promise.all(
-        networks.map((network) => getPortfolioForNetwork(address, network.chainId, customFetch))
+        networks.map((network) => getPortfolioForNetwork(address, network, customFetch))
     )
 
     for (const resp of responses) {

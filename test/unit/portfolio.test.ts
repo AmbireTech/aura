@@ -11,6 +11,8 @@ import {
     processAddress
 } from '../../lib/utils/portfolio'
 import { simplePrompt } from '../../lib/utils/prompts'
+import { networks as commonNetworks } from 'ambire-common/dist/src/consts/networks'
+import { Network } from 'ambire-common/dist/src/interfaces/network'
 
 const TEST_WALLET = '0x69bfD720Dd188B8BB04C4b4D24442D3c15576D10'
 const USDC_PRICE = 0.99
@@ -68,14 +70,9 @@ jest.mock('ambire-common/dist/src/libs/portfolio', () => {
 })
 
 describe('Portfolio unit tests', () => {
-    test('should throw an error trying to get portfolio on non-existing network', async () => {
-        await expect(getPortfolioForNetwork(TEST_WALLET, 'nethereum')).rejects.toThrow(
-            'Failed to find nethereum in configured networks'
-        )
-    })
-
     test('should successfully get portfolio for address on ethereum', async () => {
-        const res = await getPortfolioForNetwork(TEST_WALLET, 'Ethereum')
+        const network = commonNetworks.find((n: Network) => n.name === 'Ethereum') as Network
+        const res = await getPortfolioForNetwork(TEST_WALLET, network)
 
         expect(res).toHaveProperty('tokens')
         expect(res.tokens).toHaveLength(1)
