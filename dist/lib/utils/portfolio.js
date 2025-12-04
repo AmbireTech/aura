@@ -11,10 +11,21 @@ const portfolio_1 = require("ambire-common/dist/src/libs/portfolio");
 const mockedAI_1 = require("./llm/mockedAI");
 const prompts_1 = require("./prompts");
 const strategies_1 = require("./strategies");
+const __1 = require("..");
 async function getPortfolioForNetwork(address, network, customFetch) {
     const provider = (0, getRpcProvider_1.getRpcProvider)(network.rpcUrls, network.chainId);
     const portfolio = new portfolio_1.Portfolio(customFetch || node_fetch_1.default, provider, network, 'https://relayer.ambire.com/velcro-v3');
-    return portfolio.get(address, { baseCurrency: 'usd' });
+    return portfolio
+        .get(address, { baseCurrency: 'usd' })
+        .then((data) => data)
+        .catch((err) => {
+        const error = (0, __1.stringifyError)(err);
+        console.error(`Error fetching portfolio for network ${network.name}: ${error}`);
+        return {
+            tokens: [],
+            error
+        };
+    });
 }
 async function getPortfolioVelcroV3(address, networks = networks_1.networks, customFetch) {
     const output = [];
