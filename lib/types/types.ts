@@ -6,6 +6,7 @@ export type PortfolioLibToken = Pick<
 >
 export type NetworkPortfolioLibResponse = {
     tokens: PortfolioLibToken[]
+    error?: string | null
 }
 
 export type PortfolioToken = {

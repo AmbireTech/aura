@@ -14,6 +14,7 @@ import {
     NetworkPortfolioLibResponse,
     PortfolioNetworkInfo
 } from '../types'
+import { stringifyError } from '..'
 
 export async function getPortfolioForNetwork(
     address: string,
@@ -28,7 +29,18 @@ export async function getPortfolioForNetwork(
         'https://relayer.ambire.com/velcro-v3'
     )
 
-    return portfolio.get(address, { baseCurrency: 'usd' })
+    return portfolio
+        .get(address, { baseCurrency: 'usd' })
+        .then((data) => data)
+        .catch((err) => {
+            const error = stringifyError(err)
+            console.error(`Error fetching portfolio for network ${network.name}: ${error}`)
+
+            return {
+                tokens: [],
+                error
+            }
+        })
 }
 
 export async function getPortfolioVelcroV3(
