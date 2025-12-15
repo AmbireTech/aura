@@ -11,6 +11,7 @@ export type NetworkPortfolioLibResponse = {
 
 export type PortfolioToken = {
     address: string
+    balanceRaw: string
     balance: number
     balanceUSD: number
     symbol: string
