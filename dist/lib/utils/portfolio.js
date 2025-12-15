@@ -39,6 +39,7 @@ async function getPortfolioVelcroV3(address, networks = networks_1.networks, cus
                 .price;
             return {
                 symbol: t.symbol,
+                balanceRaw: t.amount.toString(),
                 balance,
                 balanceUSD: balance * priceUSD,
                 address: t.address,
